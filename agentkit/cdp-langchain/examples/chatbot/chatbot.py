@@ -1,3 +1,5 @@
+from dotenv import load_dotenv
+
 import os
 import sys
 import time
@@ -11,8 +13,15 @@ from langgraph.prebuilt import create_react_agent
 from cdp_langchain.agent_toolkits import CdpToolkit
 from cdp_langchain.utils import CdpAgentkitWrapper
 
+
+load_dotenv()
+
 # Configure a file to persist the agent's CDP MPC Wallet Data.
 wallet_data_file = "wallet_data.txt"
+
+# Add this temporarily for debugging
+# print("Environment variables loaded:", os.environ.keys())
+# print(f"Using OpenAI API key: {os.getenv('OPENAI_API_KEY')}")
 
 
 def initialize_agent():
