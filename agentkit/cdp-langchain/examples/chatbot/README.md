@@ -24,6 +24,7 @@ pip --version
 ## Installation
 ```bash
 pip install cdp-langchain
+pip install python-dotenv
 ```
 
 ## Run the Chatbot
@@ -34,6 +35,14 @@ pip install cdp-langchain
   - "CDP_API_KEY_PRIVATE_KEY"
   - "OPENAI_API_KEY"
   - "NETWORK_ID" (Defaults to `base-sepolia`)
+
+Set virtual environment if needed:
+
+```bash
+python3 -m venv venv
+source venv/bin/activate 
+pip install langchain-core langchain-openai langgraph
+```
 
 ```bash
 python chatbot.py
