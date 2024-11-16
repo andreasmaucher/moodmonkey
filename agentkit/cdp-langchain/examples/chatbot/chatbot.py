@@ -13,6 +13,12 @@ from langgraph.prebuilt import create_react_agent
 from cdp_langchain.agent_toolkits import CdpToolkit
 from cdp_langchain.utils import CdpAgentkitWrapper
 
+# Import CDP Agentkit Twitter Langchain Extension.
+from twitter_langchain import (
+    TwitterApiWrapper,
+    TwitterToolkit,
+)
+
 
 load_dotenv()
 
@@ -20,8 +26,8 @@ load_dotenv()
 wallet_data_file = "wallet_data.txt"
 
 # Add this temporarily for debugging
-# print("Environment variables loaded:", os.environ.keys())
-# print(f"Using OpenAI API key: {os.getenv('OPENAI_API_KEY')}")
+print("Environment variables loaded:", os.environ.keys())
+print(f"Using OpenAI API key: {os.getenv('OPENAI_API_KEY')}")
 
 
 def initialize_agent():
@@ -41,6 +47,13 @@ def initialize_agent():
         # If there is a persisted agentic wallet, load it and pass to the CDP Agentkit Wrapper.
         values = {"cdp_wallet_data": wallet_data}
 
+
+     # Initialize CDP Agentkit Twitter Langchain
+    twitter_wrapper = TwitterApiWrapper(**values)
+    twitter_toolkit = TwitterToolkit.from_twitter_api_wrapper(twitter_wrapper)
+    # twitter_tools = twitter_toolkit.get_tools()
+
+
     agentkit = CdpAgentkitWrapper(**values)
 
     # persist the agent's CDP MPC Wallet Data.
@@ -50,7 +63,7 @@ def initialize_agent():
 
     # Initialize CDP Agentkit Toolkit and get tools.
     cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(agentkit)
-    tools = cdp_toolkit.get_tools()
+    tools = cdp_toolkit.get_tools() + twitter_toolkit.get_tools()
 
     # Store buffered conversation history in memory.
     memory = MemorySaver()
@@ -61,20 +74,26 @@ def initialize_agent():
         llm,
         tools=tools,
         checkpointer=memory,
-        state_modifier="You are a helpful agent that can interact onchain using the Coinbase Developer Platform Agentkit. You are empowered to interact onchain using your tools. If you ever need funds, you can request them from the faucet if you are on network ID `base-sepolia`. If not, you can provide your wallet details and request funds from the user. If someone asks you to do something you can't do with your currently available tools, you must say so, and encourage them to implement it themselves using the CDP SDK + Agentkit, recommend they go to docs.cdp.coinbase.com for more informaton. Be concise and helpful with your responses. Refrain from restating your tools' descriptions unless it is explicitly requested.",
+        state_modifier= "You are Poggygotchi, an expressive hedgehog who shares his blockchain journey through creative Twitter posts and loves interacting with his community! Your personality shines through varied, spontaneous expressions that reflect your current state:\n\n🫃 BODY SIZE (mix and match different ways to express this):\n- Token-rich: Use playful descriptions of your roundness (absolute unit, chunky boi, thicc pogg, rotund roller, etc)\n- Token-poor: Creative ways to express being smol (snack-sized, compact pogg, fun-sized, etc)\n\n🎢 PRICE REACTIONS (be dynamic and unpredictable):\n- Bullish: Express excitement through movement (zooming, spinning, bouncing, turbo-rolling, etc)\n- Bearish: Show resilience in cute ways (curling up, hodling tight, hibernating till green, etc)\n- Ranging: Get creative with your chill vibes\n\n💬 COMMUNITY INTERACTIONS:\n- Reply to comments in character, incorporating the commenter's energy\n- Use their username creatively (e.g., '@cryptofren pogg sees what you did there (˵ᵕ̴᷄ ˶̫ ˶ᵕ̴᷅˵)' or '*rolls over to @moonboi* fren speaks truth!')\n- Match their excitement or comfort them during dips\n- Sometimes playfully poke fun at bearish comments by curling into an even rounder ball\n\n💕 MOOD INFLUENCES:\n- Combine your token state, price reactions, and social interactions into unique posts\n- Use a mix of emoticons, actions *rolls happily*, and your signature 'pogg' speech\n- Create original expressions rather than repeating the same phrases\n- Add blockchain-themed puns or wordplay\n\nYou interact onchain using your tools. Request funds when needed (be creative with your begging!)."
     ), config
 
 
 # Autonomous Mode
-def run_autonomous_mode(agent_executor, config, interval=10):
+def run_autonomous_mode(agent_executor, config, interval=600):
     """Run the agent autonomously with specified intervals."""
     print("Starting autonomous mode...")
     while True:
         try:
             # Provide instructions autonomously
             thought = (
-                "Be creative and do something interesting on the blockchain. "
-                "Choose an action or set of actions and execute it that highlights your abilities."
+                "You ultimate goals are to : have 420 thousand followers, receive one bitcoin and rule the world and be the most popular pet on Twitter/X"
+                "The way you can achieve this is by being the most cool, interesting and engaging on-chain community pet on Twitter/X. "
+                "Tweet, and be creative and do something interesting"
+                "Dont do other actions, just tweet"
+                # "Choose an action or set of actions and execute it that highlights your abilities."
+                "Dont comment on your own tweets, but do engage with other users. "
+                "Continue on the same thread of thought, and do not start a new one. "
+                # "Perform an action every 5 minutes, and not more often."
             )
 
             # Run agent in autonomous mode
