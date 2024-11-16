@@ -105,69 +105,66 @@ def get_balance(token: str = "eth") -> float:
     return token_balance
 
 def get_posts_and_comments() -> list[dict]:
-    """Get agent's recent Twitter posts and their comments using Tweepy.
-    
-    Returns:
-        list[dict]: List of dicts containing posts and their comments. Format:
-            [
-                {
-                    'post': str,           # The tweet text
-                    'post_id': int,        # Tweet ID
-                    'timestamp': datetime,  # When posted
-                    'comments': [          # List of comment dicts
-                        {
-                            'text': str,           # Comment text
-                            'author': str,         # Comment author username
-                            'timestamp': datetime  # When commented
-                        },
-                        ...
-                    ]
-                },
-                ...
-            ]
-        Returns empty list if request fails.
-    """
+    """Get agent's recent Twitter posts and their comments using Tweepy."""
     import tweepy
     
     try:
         # Get Twitter API credentials from environment variables
-        auth = tweepy.OAuth1UserHandler(
-            os.getenv("TWITTER_API_KEY"),
-            os.getenv("TWITTER_API_SECRET"),
-            os.getenv("TWITTER_ACCESS_TOKEN"),
-            os.getenv("TWITTER_ACCESS_SECRET")
+        client = tweepy.Client(
+            consumer_key=os.getenv("TWITTER_API_KEY"),
+            consumer_secret=os.getenv("TWITTER_API_SECRET"),
+            access_token=os.getenv("TWITTER_ACCESS_TOKEN"), 
+            access_token_secret=os.getenv("TWITTER_ACCESS_TOKEN_SECRET"),
+            bearer_token=os.getenv("TWITTER_BEARER_TOKEN"),
+            return_type=dict
         )
-        api = tweepy.API(auth)
-        
+
         # Get authenticated user's tweets
-        tweets = api.user_timeline(count=5)
+        user_response = client.get_user(username="poggygotchi")
+        if not user_response or 'data' not in user_response:
+            print("Error: Could not fetch user data")
+            return []
+            
+        user_id = user_response['data']['id']
+        tweets_response = client.get_users_tweets(
+            id=user_id,
+            max_results=5
+        )
         
+        if not tweets_response or 'data' not in tweets_response:
+            print("Error: Could not fetch tweets")
+            return []
+
         posts_with_comments = []
-        for tweet in tweets:
+        for tweet in tweets_response['data']:
             # Create post dict
             post_data = {
-                'post': tweet.text,
-                'post_id': tweet.id,
-                'timestamp': tweet.created_at,
+                'post': tweet["text"],
+                'post_id': tweet["id"],
+                'timestamp': tweet.get("created_at"),
                 'comments': []
             }
             
             # Get replies to this tweet
-            replies = api.search_tweets(
-                q=f"to:{tweet.user.screen_name}",
-                since_id=tweet.id,
-                tweet_mode="extended"
+            replies_response = client.search_recent_tweets(
+                query=f"conversation_id:{tweet['id']}",
+                max_results=100
             )
+            
+            replies = replies_response.get('data', []) if replies_response else []
             
             # Add replies that are direct responses to this tweet
             for reply in replies:
-                if reply.in_reply_to_status_id == tweet.id:
-                    comment_data = {
-                        'text': reply.full_text,
-                        'author': reply.user.screen_name,
-                        'timestamp': reply.created_at
-                    }
-                    post_data['comments'].append(comment_data)
+                if reply.get("in_reply_to_user_id") == user_id:
+                    author_response = client.get_user(id=reply["author_id"])
+                    if author_response and 'data' in author_response:
+                        author = author_response['data']
+                        comment_data = {
+                            'text': reply["text"],
+                            'author': author["username"],
+                            'timestamp': reply.get("created_at")
+                        }
+                        post_data['comments'].append(comment_data)
                     
             posts_with_comments.append(post_data)
                     
@@ -198,8 +195,8 @@ def run_autonomous_mode(agent_executor, config, interval=10):
             print(f"Wallet Balance: ${eth_balance_usd:.2f} USD")
 
             # Get Twitter posts and comments
-            twitter_posts = get_posts_and_comments()
-            print(f"Twitter Posts: {twitter_posts}")
+            # twitter_posts = get_posts_and_comments()
+            # print(f"Twitter Posts: {twitter_posts}")
             
             # Generate prompt with market context and social media data
             from datetime import datetime
@@ -210,20 +207,22 @@ def run_autonomous_mode(agent_executor, config, interval=10):
                 f"Current Time: {current_time}\n"
                 f"Current ETH Price: ${eth_price:.2f} USD\n"
                 f"Your Wallet Balance: ${eth_balance_usd:.2f} USD\n\n"
-                "Recent Twitter Activity:\n"
+                # "Recent Twitter Activity:\n"
             )
 
             # Add Twitter posts and comments to prompt
-            for post in twitter_posts:
-                thought += f"Post: {post['post']}\n"
-                if post['comments']:
-                    thought += "Comments:\n"
-                    for comment in post['comments']:
-                        thought += f"- {comment['author']}: {comment['text']}\n"
-                thought += "\n"
+            # for post in twitter_posts:
+            #     thought += f"Post: {post['post']}\n"
+            #     if post['comments']:
+            #         thought += "Comments:\n"
+            #         for comment in post['comments']:
+            #             thought += f"- {comment['author']}: {comment['text']}\n"
+            #     thought += "\n"
 
             thought += (
-                "Draft a tweet as Poggygotchi!"
+                "Draft a tweet as Poggygotchi!\n"
+                "Do not mention exact prices and do not mention the token names! Each tweet should be unique and creative\n"
+                "Keep in mind the last tweet you made and the time when you made it compared to now."
             )
 
             # Run agent in autonomous mode
