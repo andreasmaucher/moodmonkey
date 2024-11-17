@@ -65,6 +65,8 @@ def initialize_agent():
     # Initialize CDP Agentkit Toolkit and get tools.
     cdp_toolkit = CdpToolkit.from_cdp_agentkit_wrapper(agentkit)
     tools = cdp_toolkit.get_tools() + twitter_toolkit.get_tools()
+    # tools = cdp_toolkit.get_tools()
+
 
     # Store buffered conversation history in memory.
     memory = MemorySaver()
@@ -133,7 +135,7 @@ def get_posts_and_comments() -> list[dict]:
         )
 
         # Get authenticated user's tweets
-        user_response = client.get_user(username="poggygotchi")
+        user_response = client.get_user(username="basedpoggy")
         if not user_response or 'data' not in user_response:
             print("Error: Could not fetch user data")
             return []
